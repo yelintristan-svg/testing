@@ -1,10 +1,10 @@
 """
-Hyperliquid 5-Minute SMA Flip Strategy Backtester
+Hyperliquid 15-Minute SMA Flip Strategy Backtester
 ===================================================
 
-Same logic as the daily sma-bot (44-day SMA, 2x long / 1x short flip),
-but on 5-minute candles, with a full sweep across SMA periods to find
-where (if anywhere) an edge actually exists at this timeframe.
+Same logic as the daily sma-bot, but on 15-minute candles, 1x long / 1x short,
+sweeping SMA periods 40-140 to find where (if anywhere) an edge exists at
+this timeframe.
 
 Strategy:
     - price > SMA(period)  -> long at `long_lev`x
@@ -13,12 +13,12 @@ Strategy:
 
 Data source: Hyperliquid public info API (no auth required for candles).
     POST https://api.hyperliquid.xyz/info
-    {"type": "candleSnapshot", "req": {"coin": "BTC", "interval": "5m",
+    {"type": "candleSnapshot", "req": {"coin": "BTC", "interval": "15m",
      "startTime": ms, "endTime": ms}}
 
 Usage:
     pip install requests pandas numpy matplotlib
-    python hyperliquid_5m_sma_sweep.py --days 180 --min-period 10 --max-period 2000 --step 10
+    python hyperliquid_5m_sma_sweep.py --days 180 --min-period 40 --max-period 140 --step 5
 
 Output:
     sma_sweep_results.csv   - every period tested, ranked by Sharpe
@@ -26,18 +26,19 @@ Output:
     best_equity_curve.png   - equity curve of the top-ranked period vs buy & hold
 
 IMPORTANT CAVEATS (read before trusting any number this spits out):
-    - Funding rates are NOT included. On a 2x/1x perp position held for
-      long stretches, funding can matter more than the fee assumption below.
+    - Funding rates are NOT included.
     - This is an in-sample sweep. Whatever period "wins" is, by construction,
       the period that was luckiest/best-fit on THIS exact data window.
-      Testing "every SMA" and picking the top one is a classic overfitting
-      trap - the daily bot's 44-day period should have been chosen via
-      walk-forward or out-of-sample validation, not just "what backtested
-      best". Do the same here: split the data (e.g. first 70% to pick a
-      period, last 30% to confirm it still works) before trusting any
-      single number.
+      Split the data (e.g. first 70% to pick a period, last 30% to confirm
+      it still works) before trusting any single number.
     - Fees/slippage are a flat per-flip cost in bps - tune --fee-bps to
       match your actual Hyperliquid taker fee tier + realistic slippage.
+    - CHECK THE ACTUAL DATE RANGE PRINTED AT RUNTIME. Hyperliquid's public
+      candleSnapshot endpoint does not necessarily retain --days worth of
+      history at fine intervals; it will silently return less than requested
+      rather than erroring. A short actual range vs. what you asked for means
+      you're backtesting on far less data (and a narrower market regime) than
+      you think.
 """
 
 import argparse
@@ -48,7 +49,14 @@ import pandas as pd
 import numpy as np
 
 HL_INFO_URL = "https://api.hyperliquid.xyz/info"
-BARS_PER_YEAR_5M = 365 * 24 * 12  # for annualizing Sharpe on 5m bars
+
+
+def bars_per_year(interval: str) -> float:
+    """Annualization factor for Sharpe, based on candle interval."""
+    unit = interval[-1]
+    n = int(interval[:-1])
+    minutes = n if unit == "m" else n * 60 if unit == "h" else n * 60 * 24
+    return 365 * 24 * 60 / minutes
 
 
 def fetch_candles(coin: str, interval: str, start_ms: int, end_ms: int) -> list:
@@ -88,7 +96,7 @@ def candles_to_df(candles: list) -> pd.DataFrame:
     return df[["timestamp", "open", "high", "low", "close", "volume"]]
 
 
-def backtest_sma(df: pd.DataFrame, period: int, long_lev: float = 2.0,
+def backtest_sma(df: pd.DataFrame, period: int, interval: str, long_lev: float = 1.0,
                   short_lev: float = 1.0, fee_bps: float = 2.5,
                   slippage_bps: float = 1.0):
     close = df["close"].values
@@ -116,7 +124,7 @@ def backtest_sma(df: pd.DataFrame, period: int, long_lev: float = 2.0,
     total_return_pct = (equity[-1] - 1.0) * 100
     sharpe = 0.0
     if rets.std() > 0:
-        sharpe = (rets.mean() / rets.std()) * np.sqrt(BARS_PER_YEAR_5M)
+        sharpe = (rets.mean() / rets.std()) * np.sqrt(bars_per_year(interval))
     running_max = np.maximum.accumulate(equity)
     drawdown = (equity - running_max) / running_max
     max_dd_pct = drawdown.min() * 100
@@ -139,14 +147,14 @@ def buy_and_hold(df: pd.DataFrame) -> float:
     return (close[-1] / close[0] - 1.0) * 100
 
 
-def sweep(df: pd.DataFrame, periods, **kwargs):
+def sweep(df: pd.DataFrame, periods, interval: str, **kwargs):
     results = []
     equities = {}
     total = len(periods)
     for idx, p in enumerate(periods, 1):
         if p >= len(df) - 5:
             continue
-        res, eq = backtest_sma(df, p, **kwargs)
+        res, eq = backtest_sma(df, p, interval, **kwargs)
         results.append(res)
         equities[p] = eq
         if idx % 20 == 0 or idx == total:
@@ -162,7 +170,7 @@ def plot_results(res_df: pd.DataFrame, out_path: str):
 
     fig, ax1 = plt.subplots(figsize=(11, 5))
     ax1.plot(res_df["period"], res_df["total_return_pct"], color="tab:blue", label="Return %")
-    ax1.set_xlabel("SMA period (5m bars)")
+    ax1.set_xlabel("SMA period (bars)")
     ax1.set_ylabel("Total return %", color="tab:blue")
     ax1.tick_params(axis="y", labelcolor="tab:blue")
 
@@ -198,14 +206,14 @@ def plot_best_equity(df: pd.DataFrame, equities: dict, best_period: int, out_pat
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Sweep SMA periods on Hyperliquid 5m candles")
+    parser = argparse.ArgumentParser(description="Sweep SMA periods on Hyperliquid candles")
     parser.add_argument("--coin", default="BTC")
-    parser.add_argument("--interval", default="5m")
+    parser.add_argument("--interval", default="15m")
     parser.add_argument("--days", type=int, default=180, help="lookback window in days")
-    parser.add_argument("--min-period", type=int, default=5)
-    parser.add_argument("--max-period", type=int, default=2000)
+    parser.add_argument("--min-period", type=int, default=40)
+    parser.add_argument("--max-period", type=int, default=140)
     parser.add_argument("--step", type=int, default=5)
-    parser.add_argument("--long-lev", type=float, default=2.0)
+    parser.add_argument("--long-lev", type=float, default=1.0)
     parser.add_argument("--short-lev", type=float, default=1.0)
     parser.add_argument("--fee-bps", type=float, default=2.5, help="taker fee in bps per flip")
     parser.add_argument("--slippage-bps", type=float, default=1.0)
@@ -220,14 +228,20 @@ def main():
     print(f"Fetching {args.coin} {args.interval} candles for the last {args.days} days...")
     candles = fetch_candles(args.coin, args.interval, start_ms, end_ms)
     df = candles_to_df(candles)
+    actual_days = (df["timestamp"].max() - df["timestamp"].min()).total_seconds() / 86400
     print(f"Got {len(df)} candles: {df['timestamp'].min()} -> {df['timestamp'].max()}")
+    if actual_days < args.days * 0.9:
+        print(f"WARNING: requested {args.days} days but only got ~{actual_days:.1f} days of "
+              f"history. Hyperliquid's public endpoint may not retain this interval that far "
+              f"back - results below are based on a much smaller/narrower sample than requested.",
+              file=sys.stderr)
 
     periods = list(range(args.min_period, args.max_period + 1, args.step))
     print(f"Sweeping {len(periods)} SMA periods from {args.min_period} to {args.max_period} "
           f"(step {args.step})...")
 
     res_df, equities = sweep(
-        df, periods,
+        df, periods, args.interval,
         long_lev=args.long_lev, short_lev=args.short_lev,
         fee_bps=args.fee_bps, slippage_bps=args.slippage_bps,
     )
