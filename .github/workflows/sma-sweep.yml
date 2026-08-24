@@ -1,0 +1,58 @@
+name: SMA Sweep Backtest
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Lookback window in days"
+        required: false
+        default: "180"
+      min_period:
+        description: "Minimum SMA period"
+        required: false
+        default: "5"
+      max_period:
+        description: "Maximum SMA period"
+        required: false
+        default: "2000"
+      step:
+        description: "Step size between periods"
+        required: false
+        default: "5"
+  schedule:
+    # Re-runs weekly (Monday 06:00 UTC) with fresh data. Remove this block
+    # if you'd rather trigger it manually only.
+    - cron: "0 6 * * 1"
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests pandas numpy matplotlib
+
+      - name: Run SMA sweep
+        run: |
+          python hyperliquid_5m_sma_sweep.py \
+            --days "${{ github.event.inputs.days || '180' }}" \
+            --min-period "${{ github.event.inputs.min_period || '5' }}" \
+            --max-period "${{ github.event.inputs.max_period || '2000' }}" \
+            --step "${{ github.event.inputs.step || '5' }}"
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: sma-sweep-results-${{ github.run_number }}
+          path: |
+            sma_sweep_results.csv
+            sma_sweep_curve.png
+            best_equity_curve.png
+          retention-days: 30
