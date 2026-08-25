@@ -1,4 +1,4 @@
-name: Short SMA Ranking + Out-of-Sample Test
+name: Cross-Margin Top-8 Backtest
 
 on:
   workflow_dispatch:
@@ -11,17 +11,13 @@ on:
         description: "SMA period in days"
         required: false
         default: "30"
-      top_n:
-        description: "How many top coins to show"
+      maintenance_margin_pct:
+        description: "Approx maintenance margin %% of notional per position"
         required: false
-        default: "15"
-      split_pct:
-        description: "%% of history used to rank before out-of-sample test"
-        required: false
-        default: "60"
+        default: "3"
 
 jobs:
-  ranking:
+  backtest:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -35,24 +31,23 @@ jobs:
       - name: Install dependencies
         run: pip install requests pandas numpy matplotlib
 
-      - name: Run ranking + out-of-sample test
+      - name: Run cross-margin backtest
         run: |
-          python hl_short_ranking.py \
+          python hl_short_top8_crossmargin.py \
             --days "${{ github.event.inputs.days || '365' }}" \
             --sma "${{ github.event.inputs.sma || '30' }}" \
-            --top-n "${{ github.event.inputs.top_n || '15' }}" \
-            --split-pct "${{ github.event.inputs.split_pct || '60' }}"
+            --maintenance-margin-pct "${{ github.event.inputs.maintenance_margin_pct || '3' }}"
 
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: short-sma-ranking-${{ github.run_number }}
+          name: crossmargin-top8-${{ github.run_number }}
           path: |
-            ranking_isolated.csv
-            portfolio_equity.csv
-            portfolio_trades.csv
-            out_of_sample_test.csv
-            ranking_summary.png
+            crossmargin_equity.csv
+            crossmargin_trades.csv
+            crossmargin_skipped_signals.csv
+            crossmargin_liquidation_events.csv
+            crossmargin_summary.png
           if-no-files-found: warn
           retention-days: 30
