@@ -1,0 +1,61 @@
+name: Short SMA Backtest
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Lookback window in days"
+        required: false
+        default: "365"
+      sma:
+        description: "SMA period in days"
+        required: false
+        default: "30"
+      max_positions:
+        description: "Max concurrent shorts"
+        required: false
+        default: "5"
+      check_only:
+        description: "Only check which tickers Hyperliquid lists (true/false)"
+        required: false
+        default: "false"
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests pandas numpy matplotlib
+
+      - name: Run backtest
+        run: |
+          FLAGS=""
+          if [ "${{ github.event.inputs.check_only }}" = "true" ]; then
+            FLAGS="--check-only"
+          fi
+          python hl_short_sma_backtest.py \
+            --days "${{ github.event.inputs.days || '365' }}" \
+            --sma "${{ github.event.inputs.sma || '30' }}" \
+            --max-positions "${{ github.event.inputs.max_positions || '5' }}" \
+            $FLAGS
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: short-sma-results-${{ github.run_number }}
+          path: |
+            short_sma_equity_curve.csv
+            short_sma_trades.csv
+            short_sma_equity.png
+            short_sma_coverage.csv
+          if-no-files-found: warn
+          retention-days: 30
