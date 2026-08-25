@@ -1,0 +1,58 @@
+name: Short SMA Ranking + Out-of-Sample Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Lookback window in days"
+        required: false
+        default: "365"
+      sma:
+        description: "SMA period in days"
+        required: false
+        default: "30"
+      top_n:
+        description: "How many top coins to show"
+        required: false
+        default: "15"
+      split_pct:
+        description: "%% of history used to rank before out-of-sample test"
+        required: false
+        default: "60"
+
+jobs:
+  ranking:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests pandas numpy matplotlib
+
+      - name: Run ranking + out-of-sample test
+        run: |
+          python hl_short_ranking.py \
+            --days "${{ github.event.inputs.days || '365' }}" \
+            --sma "${{ github.event.inputs.sma || '30' }}" \
+            --top-n "${{ github.event.inputs.top_n || '15' }}" \
+            --split-pct "${{ github.event.inputs.split_pct || '60' }}"
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: short-sma-ranking-${{ github.run_number }}
+          path: |
+            ranking_isolated.csv
+            portfolio_equity.csv
+            portfolio_trades.csv
+            out_of_sample_test.csv
+            ranking_summary.png
+          if-no-files-found: warn
+          retention-days: 30
