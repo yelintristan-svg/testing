@@ -189,6 +189,49 @@ CREATE TABLE IF NOT EXISTS linkedin_targets (
     updated_at TEXT NOT NULL
 );
 
+-- Automatic prospecting (crm/prospect.py). Companies and people already
+-- looked at, so each morning moves on to new ones and nobody is added twice.
+CREATE TABLE IF NOT EXISTS prospect_companies (
+    company_number TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    domain TEXT,
+    size TEXT,
+    location TEXT,
+    outcome TEXT NOT NULL,                -- added|no_people|no_site|wrong_size|error
+    people_found INTEGER NOT NULL DEFAULT 0,
+    checked_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS prospect_people (
+    id TEXT PRIMARY KEY,
+    company_number TEXT NOT NULL,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    title TEXT,
+    found_via TEXT NOT NULL,              -- companies_house|website|apollo
+    evidence_url TEXT,
+    email TEXT,
+    email_status TEXT,                    -- published|verified|pattern|guess|rejected|none
+    contact_id TEXT REFERENCES contacts(id) ON DELETE SET NULL,
+    outcome TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(company_number, first_name, last_name)
+);
+
+-- Where each saved search got to, and what each day used (requests, checks, credits).
+CREATE TABLE IF NOT EXISTS prospect_cursor (
+    search_key TEXT PRIMARY KEY,
+    next_index INTEGER NOT NULL DEFAULT 0,
+    total INTEGER,
+    updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS prospect_usage (
+    day TEXT NOT NULL,
+    what TEXT NOT NULL,
+    n INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (day, what)
+);
+
 CREATE INDEX IF NOT EXISTS ix_li_status ON linkedin_targets(status, priority);
 CREATE INDEX IF NOT EXISTS ix_enrol_due ON enrollments(status, next_due_at);
 CREATE INDEX IF NOT EXISTS ix_msg_status ON messages(status, assistant_id);

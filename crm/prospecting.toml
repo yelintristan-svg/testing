@@ -1,0 +1,64 @@
+# What `python -m crm daily` looks for each morning (also `python -m crm prospect`).
+# Edit freely, then try it with `python -m crm prospect --dry-run`: that shows who
+# it would add without saving anything.
+
+brand = "finance"
+# "companies_house": our own search, free (needs COMPANIES_HOUSE_API_KEY, also free).
+# "apollo": Apollo's database instead (needs APOLLO_API_KEY; 1 credit per email).
+source = "companies_house"
+
+[companies]
+# Town, city or county, matched against the registered office address.
+# Required: set this to your patch, e.g. "Manchester", "Leeds", "Surrey".
+location = ""
+# From the latest accounts filed at Companies House. Small is up to about 50
+# staff, medium up to about 250, large above that. Micro (under 10) rarely has
+# a finance team.
+sizes = ["small", "medium"]
+# Industries as SIC codes. Empty means any industry. Examples: "10890" food
+# manufacturing, "46900" wholesale, "62020" IT consultancy, "69201" accountancy.
+sic_codes = []
+exclude_sic_codes = ["99999", "74990"]      # dormant and non-trading companies
+# Limited companies, PLCs and LLPs only: under PECR these are corporate
+# subscribers we may email without prior consent. Don't add sole traders.
+company_types = ["ltd", "plc", "llp"]
+min_age_years = 2
+
+[people]
+# Hiring managers: they get the business-development sequence.
+client_titles = ["chief financial officer", "cfo", "finance director", "financial director",
+                 "head of finance", "financial controller", "finance manager"]
+# Possible candidates: they get the candidate sequence. Empty the list to stop.
+candidate_titles = ["management accountant", "financial accountant", "chartered accountant",
+                    "assistant accountant", "accountant"]
+exclude_titles = ["non-executive", "trainee", "apprentice"]
+max_per_company = 2
+
+[email]
+# Which addresses are good enough to email, best first:
+#   published  the address is on the company's own website
+#   verified   their mail server accepted it (nothing is sent)
+#   pattern    built from the company's own format, seen on a colleague's address
+#   guess      the most common UK format only. Bounces hurt a new domain; leave it out.
+accept = ["published", "verified", "pattern"]
+# Ask the company's mail server whether the address exists. Home broadband
+# usually blocks this (port 25); it switches itself off when it can't connect.
+smtp_check = true
+
+[limits]
+companies_per_day = 40
+new_contacts_per_day = 25
+smtp_checks_per_day = 60
+seconds_between_requests = 3     # per website, so small sites never notice us
+pages_per_site = 6
+
+[fallback]
+# Optional paid lookup for people we found but couldn't confirm an email for.
+# "none", "hunter" (HUNTER_API_KEY) or "apollo" (APOLLO_API_KEY).
+fallback = "none"
+credits_per_day = 5
+
+[apollo]
+# Only used when source = "apollo".
+apollo_locations = []                        # e.g. ["Manchester, United Kingdom"]; defaults to location above
+apollo_employee_ranges = ["11,50", "51,200"]

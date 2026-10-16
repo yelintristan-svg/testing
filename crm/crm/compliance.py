@@ -155,6 +155,7 @@ def erase(conn: sqlite3.Connection, email: str, actor: str) -> int:
         conn.execute("UPDATE meetings SET invitee_email=NULL, invitee_name=NULL, briefing=NULL WHERE contact_id=?", (cid,))
         conn.execute("DELETE FROM contacts WHERE id=?", (cid,))
     conn.execute("UPDATE meetings SET invitee_email=NULL, invitee_name=NULL WHERE invitee_email=?", (e,))
+    conn.execute("DELETE FROM prospect_people WHERE email=?", (e,))
     db.audit(conn, actor, "erase", email_hash(e), f"{len(ids)} contact records")
     conn.commit()
     return len(ids)
@@ -185,6 +186,8 @@ def purge_stale(conn: sqlite3.Connection, retention_days: int, actor: str = "ret
     ).fetchall()
     for r in rows:
         conn.execute("DELETE FROM contacts WHERE id=?", (r["id"],))
+    # People prospecting looked at but never added: keep their names no longer than contacts.
+    conn.execute("DELETE FROM prospect_people WHERE contact_id IS NULL AND created_at < ?", (cutoff,))
     db.audit(conn, actor, "retention_purge", "", f"{len(rows)} contacts older than {retention_days}d")
     conn.commit()
     return len(rows)

@@ -64,6 +64,31 @@ class Apollo:
         return Found(email, status == "verified", status, self.name, self.source_detail, org_domain)
 
 
+class ApolloSearch:
+    """Apollo People API Search (no credits, no emails) plus People Match by id (1 credit per email).
+
+    Used when prospecting.toml sets source = "apollo". Apollo's docs say the
+    search endpoint may need a master API key.
+    """
+
+    def __init__(self, api_key: str, fetch: Fetch = _http_json):
+        self.key, self.fetch = api_key, fetch
+
+    def _post(self, path: str, body: dict) -> dict:
+        req = urllib.request.Request(
+            f"https://api.apollo.io/api/v1/{path}", data=json.dumps(body).encode(), method="POST",
+            headers={"Content-Type": "application/json", "X-Api-Key": self.key, "Cache-Control": "no-cache"})
+        return self.fetch(req) or {}
+
+    def search(self, titles: list[str], locations: list[str], employee_ranges: list[str], page: int) -> list[dict]:
+        body = {"person_titles": titles, "include_similar_titles": False, "person_locations": locations,
+                "organization_num_employees_ranges": employee_ranges, "page": page, "per_page": 25}
+        return self._post("mixed_people/api_search", body).get("people") or []
+
+    def reveal(self, person_id: str) -> dict:
+        return self._post("people/match", {"id": person_id, "reveal_personal_emails": False}).get("person") or {}
+
+
 class Hunter:
     """Hunter Email Finder (GET /v2/email-finder). Needs a company domain."""
     name = "hunter"
