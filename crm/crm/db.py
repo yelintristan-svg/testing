@@ -164,13 +164,13 @@ CREATE INDEX IF NOT EXISTS ix_msg_sent ON messages(assistant_id, sent_at);
 
 DEFAULT_BRANDS = [
     # (id, name, sector, default_model, lia_summary)
-    ("care", "Care & Nursing Recruitment (working name)", "Nursing, medical and care", "temp",
-     "Contacting healthcare professionals about relevant shifts and roles they are qualified for; "
+    ("care", "Northbridge Care (placeholder name)", "Nursing, medical and care", "perm",
+     "Contacting healthcare professionals about relevant roles they are qualified for; "
      "minimal data, opt-out in every message, no special-category data collected by outreach."),
-    ("engineering", "Engineering & Trades Recruitment (working name)", "Engineering, construction and technical trades", "both",
+    ("engineering", "Northbridge Engineering (placeholder name)", "Engineering, construction and technical trades", "both",
      "Contacting engineers, trades and hiring managers about relevant contract and permanent work; "
      "business contact data only, opt-out in every message."),
-    ("finance", "Accounting & Finance Recruitment (working name)", "Accounting and finance", "perm",
+    ("finance", "Northbridge Finance (placeholder name)", "Accounting and finance", "perm",
      "Contacting finance professionals and finance leaders about relevant permanent and interim roles; "
      "business contact data only, opt-out in every message."),
 ]

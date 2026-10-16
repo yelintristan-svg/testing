@@ -59,10 +59,9 @@ section { padding: 84px 0; }
 .toggle { display: inline-flex; background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; padding: 5px; margin-bottom: 28px; }
 .toggle button { border: 0; background: transparent; padding: 10px 20px; border-radius: 999px; font: inherit; font-weight: 700; font-size: .95rem; color: var(--ink-2); cursor: pointer; transition: background .2s, color .2s; }
 .toggle button[aria-pressed="true"] { background: var(--accent); color: #fff; box-shadow: var(--shadow); }
-[data-for] { display: none; }
-body[data-view="client"] [data-for="client"],
-body[data-view="candidate"] [data-for="candidate"] { display: revert; }
-body[data-view="client"] .flex[data-for="client"], body[data-view="candidate"] .flex[data-for="candidate"] { display: flex; }
+/* Hide whichever audience isn't selected; visible blocks keep their own display. */
+body[data-view="client"] [data-for="candidate"],
+body[data-view="candidate"] [data-for="client"] { display: none !important; }
 
 /* Hero */
 .hero { padding: 72px 0 84px; background: radial-gradient(1200px 500px at 85% -10%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 60%), var(--bg); }

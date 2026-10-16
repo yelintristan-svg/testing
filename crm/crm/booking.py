@@ -18,7 +18,7 @@ import hmac
 import json
 import sqlite3
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from . import compliance, db
@@ -155,7 +155,7 @@ def to_ics(uid: str, settings: Settings, payload: dict, sched: dict, briefing: s
     desc = briefing.replace("\\", "\\\\").replace("\n", "\\n").replace(",", "\\,").replace(";", "\\;")
     return "\r\n".join([
         "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//recruitment-crm//EN", "BEGIN:VEVENT",
-        f"UID:{uid}@crm", f"DTSTAMP:{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}",
+        f"UID:{uid}@crm", f"DTSTAMP:{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}",
         f"DTSTART:{fmt(sched['start_time'])}", f"DTEND:{fmt(sched['end_time'])}",
         f"SUMMARY:Call: {payload.get('name', 'invitee')} with {settings.recruiter_name}",
         f"ORGANIZER:mailto:{settings.recruiter_email}",

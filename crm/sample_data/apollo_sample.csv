@@ -1,0 +1,5 @@
+First Name,Last Name,Title,Company,Website,Industry,# Employees,City,Country,Email,Email Status,Person Linkedin Url,Seniority,Keywords
+Priya,Shah,Site Manager,Northbank Build Ltd,northbank-build.example,Construction,120,Leeds,United Kingdom,priya.shah@northbank-build.example,Verified,https://www.linkedin.com/in/example-priya,Manager,"civil engineering, groundworks, SMSTS"
+Tom,Hughes,Operations Director,Hughes Mechanical,hughesmech.example,Mechanical or Industrial Engineering,45,Bradford,United Kingdom,tom@hughesmech.example,Verified,,Director,"HVAC, maintenance engineers"
+Dan,Moss,Head of Engineering,Moss Fabrication,mossfab.example,Manufacturing,80,Sheffield,United Kingdom,dan.moss@gmail.com,Verified,,Head,"welding, fabrication"
+Lucy,Grant,Project Manager,Arden Civils,ardencivils.example,Construction,200,York,United Kingdom,lucy.grant@ardencivils.example,Unavailable,,Manager,"rail, civils"

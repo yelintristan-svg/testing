@@ -1,0 +1,12 @@
+{
+  "id": "finance_candidates_perm",
+  "name": "Accountants: permanent roles",
+  "brand_id": "finance",
+  "audience": "candidate",
+  "goal": "Book a confidential career call with Tristan",
+  "steps": [
+    {"kind": "first_touch", "delay_days": 0, "brief": "Reference their qualification stage (ACCA, ACA, CIMA) and current role. Confidential conversation about permanent moves."},
+    {"kind": "follow_up", "delay_days": 4, "brief": "Short nudge, emphasise confidentiality and no obligation."},
+    {"kind": "breakup", "delay_days": 7, "brief": "Polite last note."}
+  ]
+}

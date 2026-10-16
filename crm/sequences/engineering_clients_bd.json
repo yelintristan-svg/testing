@@ -1,0 +1,13 @@
+{
+  "id": "engineering_clients_bd",
+  "name": "Engineering and construction hiring managers",
+  "brand_id": "engineering",
+  "audience": "client",
+  "goal": "Book a 15 minute discovery call with Tristan about their hiring",
+  "steps": [
+    {"kind": "first_touch", "delay_days": 0, "brief": "Reference their company and the trades or engineering disciplines they likely hire. Contract labour for projects, perm for engineers. Ask for 15 minutes with Tristan."},
+    {"kind": "follow_up", "delay_days": 4, "brief": "Add one useful market insight relevant to their sector (no invented statistics). Same ask."},
+    {"kind": "follow_up", "delay_days": 6, "brief": "Offer to send two anonymised candidate profiles that fit their likely needs."},
+    {"kind": "breakup", "delay_days": 8, "brief": "Polite close, invite them to reply whenever a requirement comes up."}
+  ]
+}
