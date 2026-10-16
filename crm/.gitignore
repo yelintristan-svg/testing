@@ -1,0 +1,4 @@
+crm.sqlite3
+outbox/
+__pycache__/
+*.pyc

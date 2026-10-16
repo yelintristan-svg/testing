@@ -11,6 +11,11 @@ const ROOT = __dirname;
 const DIST = path.join(ROOT, 'dist');
 const SECTORS = ['care', 'build', 'finance'];
 const ALL = ['group', ...SECTORS];
+// Sites that are live (config.live). A live page never links to a parked site.
+const LIVE = new Set(cfg.live || ALL);
+const isLive = (k) => LIVE.has(k);
+const groupLive = () => isLive('group');
+const partOf = () => (groupLive() ? ` Part of ${cfg.sites.group.name}.` : '');
 
 // ── helpers ──────────────────────────────────────────────────
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -66,7 +71,7 @@ function head(key, { title, description, rel, canonical, type = 'website' }) {
   const org = {
     '@context': 'https://schema.org', '@type': 'EmploymentAgency', name: s.name, url: s.url,
     email: s.email, telephone: s.phone, address: cfg.company.address,
-    parentOrganization: key === 'group' ? undefined : { '@type': 'Organization', name: cfg.sites.group.name, url: cfg.sites.group.url },
+    parentOrganization: key === 'group' || !groupLive() ? undefined : { '@type': 'Organization', name: cfg.sites.group.name, url: cfg.sites.group.url },
     sameAs: Object.values(cfg.social),
   };
   return `<!doctype html>
@@ -99,7 +104,7 @@ function header(key, rel, active) {
     ? [['Divisions', 'index.html#divisions'], ['How we work', 'index.html#how'], ['Insights', 'blog/index.html'], ['Contact', 'contact.html']]
     : [['Hire staff', 'hire.html'], ['Find work', 'register.html'], ['How we work', 'index.html#model'], ['Insights', 'blog/index.html']];
   const nav = links.map(([t, h]) => `<a href="${rel}${h}"${active === h ? ' class="active"' : ''}>${t}</a>`).join('');
-  const groupLink = isGroup ? '' : `<a href="${siteLink('group', 'index.html', rel)}">${esc(cfg.sites.group.short)} Group</a>`;
+  const groupLink = isGroup || !groupLive() ? '' : `<a href="${siteLink('group', 'index.html', rel)}">${esc(cfg.sites.group.short)} Group</a>`;
   return `<header class="site-header"><div class="wrap">
   <a class="logo" href="${rel}index.html"><span class="logo-mark">${esc(s.name[0])}</span>${esc(s.name)}</a>
   <button class="menu-btn" aria-label="Menu" aria-expanded="false">☰</button>
@@ -109,14 +114,14 @@ function header(key, rel, active) {
 
 function footer(key, rel) {
   const s = cfg.sites[key];
-  const divisions = SECTORS.map((k) => `<li><a href="${siteLink(k, 'index.html', rel)}">${esc(cfg.sites[k].name)}</a></li>`).join('');
+  const divisions = SECTORS.filter((k) => isLive(k) && k !== key).map((k) => `<li><a href="${siteLink(k, 'index.html', rel)}">${esc(cfg.sites[k].name)}</a></li>`).join('');
   return `<footer class="site-footer"><div class="wrap">
   <div class="foot-grid">
     <div>
       <a class="logo" href="${rel}index.html" style="color:#fff"><span class="logo-mark">${esc(s.name[0])}</span>${esc(s.name)}</a>
-      <p style="margin-top:14px">${esc(key === 'group' ? s.tagline : `Specialist ${s.sector.toLowerCase()} recruitment. Part of ${cfg.sites.group.name}.`)}</p>
+      <p style="margin-top:14px">${esc(key === 'group' ? s.tagline : `Specialist ${s.sector.toLowerCase()} recruitment.${partOf()}`)}</p>
     </div>
-    <div><h4>Group</h4><ul><li><a href="${siteLink('group', 'index.html', rel)}">${esc(cfg.sites.group.name)}</a></li>${divisions}</ul></div>
+    ${groupLive() || divisions ? `<div><h4>Group</h4><ul>${groupLive() ? `<li><a href="${siteLink('group', 'index.html', rel)}">${esc(cfg.sites.group.name)}</a></li>` : ''}${divisions}</ul></div>` : ''}
     <div><h4>Contact</h4><ul><li><a href="mailto:${s.email}">${s.email}</a></li><li><a href="tel:${s.phone.replace(/\s/g, '')}">${s.phone}</a></li><li><a href="${cfg.calendly[key]}" data-calendly="footer">Book a call</a></li></ul></div>
     <div><h4>Follow</h4><ul><li><a href="${cfg.social.linkedin}" rel="noopener">LinkedIn</a></li><li><a href="${cfg.social.twitter}" rel="noopener">X / Twitter</a></li><li><a href="${cfg.social.instagram}" rel="noopener">Instagram</a></li></ul></div>
   </div>
@@ -182,7 +187,7 @@ function founderBlock(key) {
     : `When you get in touch with ${cfg.sites[key].name}, you deal with ${o.name} directly. No being passed around a call centre, no junior consultant learning on your vacancy.`;
   return `<section><div class="wrap"><div class="card founder">
   <div class="avatar">${initials(o.name)}</div>
-  <div><span class="eyebrow">Who you'll speak to</span><h2 style="margin-bottom:.2em">${esc(o.name)}</h2><p class="muted" style="font-weight:700">${esc(o.title)}, ${esc(cfg.sites.group.name)}</p>
+  <div><span class="eyebrow">Who you'll speak to</span><h2 style="margin-bottom:.2em">${esc(o.name)}</h2><p class="muted" style="font-weight:700">${esc(o.title)}, ${esc(groupLive() || !cfg.sites[key] ? cfg.sites.group.name : cfg.sites[key].name)}</p>
   <p class="muted">${esc(blurb)}</p>
   <div class="btn-row"><a class="btn btn-primary" href="${cfg.calendly[key]}" data-calendly="founder">Book time with ${esc(o.name)}</a><a class="btn btn-ghost" href="${o.linkedin}" rel="noopener">Connect on LinkedIn</a></div></div>
 </div></div></section>`;
@@ -258,7 +263,7 @@ function sectorHome(key, posts) {
     <h3>How we recruit</h3>
     <div class="model">${esc(s.model)}</div>
     <p class="muted" style="font-size:.95rem">${esc(s.modelWhy)}</p>
-    <small>Part of ${esc(cfg.sites.group.name)}</small>
+    ${groupLive() ? `<small>Part of ${esc(cfg.sites.group.name)}</small>` : ''}
   </aside>
 </div></section>
 

@@ -23,10 +23,13 @@ CREATE TABLE IF NOT EXISTS brands (
     lia_summary TEXT                      -- legitimate interest assessment, in brief
 );
 
--- AI assistants. Always disclosed as AI in every message they send.
+-- Senders. Usually AI assistants, always disclosed as AI in every message
+-- they send. is_ai=0 is a person (Tristan) sending AI-drafted, human-approved
+-- email under their own name: the lean launch uses one such mailbox.
 CREATE TABLE IF NOT EXISTS assistants (
     id TEXT PRIMARY KEY,
     display_name TEXT NOT NULL,           -- e.g. 'Ava, AI recruitment assistant'
+    is_ai INTEGER NOT NULL DEFAULT 1,
     brand_id TEXT REFERENCES brands(id),  -- NULL means works across all brands
     mailbox TEXT NOT NULL,                -- sending address
     mailbox_started_on TEXT NOT NULL,     -- for warm-up ramp
@@ -157,6 +160,36 @@ CREATE TABLE IF NOT EXISTS audit_log (
     detail TEXT
 );
 
+-- Tristan's LinkedIn list. People he researched himself (by hand, in LinkedIn
+-- or Sales Navigator) or that came from a compliant data provider. Nothing in
+-- this CRM visits LinkedIn: Tristan sends every invitation and message by hand.
+CREATE TABLE IF NOT EXISTS linkedin_targets (
+    id TEXT PRIMARY KEY,
+    brand_id TEXT NOT NULL REFERENCES brands(id),
+    kind TEXT NOT NULL CHECK (kind IN ('candidate','client')),
+    first_name TEXT NOT NULL,
+    last_name TEXT,
+    title TEXT,
+    company TEXT,
+    company_domain TEXT,
+    location TEXT,
+    profile_url TEXT NOT NULL UNIQUE,
+    why TEXT,                             -- Tristan's reason / hook, e.g. 'new FD, team growing'
+    source TEXT NOT NULL DEFAULT 'manual',
+    priority INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'queued', -- queued|listed|invited|accepted|messaged|replied|declined|skipped
+    note_draft TEXT,                      -- connection note, within LinkedIn's character limit
+    dm_draft TEXT,                        -- first message after they accept
+    listed_on TEXT,                       -- date it went on a daily list
+    invited_at TEXT,
+    accepted_at TEXT,
+    contact_id TEXT REFERENCES contacts(id) ON DELETE SET NULL,
+    email_lookup TEXT,                    -- last lookup outcome
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_li_status ON linkedin_targets(status, priority);
 CREATE INDEX IF NOT EXISTS ix_enrol_due ON enrollments(status, next_due_at);
 CREATE INDEX IF NOT EXISTS ix_msg_status ON messages(status, assistant_id);
 CREATE INDEX IF NOT EXISTS ix_msg_sent ON messages(assistant_id, sent_at);
@@ -164,13 +197,13 @@ CREATE INDEX IF NOT EXISTS ix_msg_sent ON messages(assistant_id, sent_at);
 
 DEFAULT_BRANDS = [
     # (id, name, sector, default_model, lia_summary)
-    ("care", "Care & Nursing Recruitment (working name)", "Nursing, medical and care", "temp",
-     "Contacting healthcare professionals about relevant shifts and roles they are qualified for; "
+    ("care", "Wrenfield Care", "Nursing, medical and care", "perm",
+     "Contacting healthcare professionals about relevant roles they are qualified for; "
      "minimal data, opt-out in every message, no special-category data collected by outreach."),
-    ("engineering", "Engineering & Trades Recruitment (working name)", "Engineering, construction and technical trades", "both",
+    ("engineering", "Wrenfield Build", "Engineering, construction and technical trades", "both",
      "Contacting engineers, trades and hiring managers about relevant contract and permanent work; "
      "business contact data only, opt-out in every message."),
-    ("finance", "Accounting & Finance Recruitment (working name)", "Accounting and finance", "perm",
+    ("finance", "Wrenfield Finance", "Accounting and finance", "perm",
      "Contacting finance professionals and finance leaders about relevant permanent and interim roles; "
      "business contact data only, opt-out in every message."),
 ]
@@ -193,6 +226,9 @@ def connect(path: Path | str) -> sqlite3.Connection:
 
 def init(conn: sqlite3.Connection, base_url: str = "http://localhost:8080") -> None:
     conn.executescript(SCHEMA)
+    # Databases created before is_ai existed.
+    if "is_ai" not in {r[1] for r in conn.execute("PRAGMA table_info(assistants)")}:
+        conn.execute("ALTER TABLE assistants ADD COLUMN is_ai INTEGER NOT NULL DEFAULT 1")
     for bid, name, sector, model, lia in DEFAULT_BRANDS:
         conn.execute(
             "INSERT OR IGNORE INTO brands (id, name, sector, default_model, website, privacy_url, postal_address, lia_summary)"

@@ -10,22 +10,24 @@
 
 One holding brand, three specialist sector brands, one human recruiter (Tristan, Head of Recruitment) and two **openly disclosed AI recruitment assistants**. The assistants research companies and candidates from compliant sources, enrich a shared CRM, write personalised email sequences, handle replies, and book qualified calls into Tristan's calendar. Tristan does what only a human can and should do: consultative calls, LinkedIn conversations, interviews, offers and relationship management. Websites, blogs and social channels run on an automated content pipeline (AI drafts, Tristan approves, a scheduler publishes) to drive organic and inbound traffic, so outreach is warm rather than cold over time.
 
-**Why disclosed AI rather than "fake employees":** LinkedIn's User Agreement only allows real people to hold personal profiles, and fake profiles get the company page and Tristan's account restricted. Under UK consumer and data protection law, misrepresenting who is contacting someone is also a liability. A clearly branded AI assistant ("Ava, AI Recruitment Assistant at Northbridge Care") still looks like a larger, well-run team, and it's a positive differentiator ("we respond within 5 minutes, 24/7") instead of a risk.
+**Why disclosed AI rather than "fake employees":** LinkedIn's User Agreement only allows real people to hold personal profiles, and fake profiles get the company page and Tristan's account restricted. Under UK consumer and data protection law, misrepresenting who is contacting someone is also a liability. A clearly branded AI assistant ("Ava, AI Recruitment Assistant at Wrenfield Care") still looks like a larger, well-run team, and it's a positive differentiator ("we respond within 5 minutes, 24/7") instead of a risk.
 
 ---
 
 ## 2. Brand architecture
 
-Names below are **placeholders** to show the structure. Check Companies House, the UKIPO trade mark register and domain availability before committing.
+**Chosen names (16 Oct 2026): Wrenfield.** One shared surname-style brand reads as an established British firm, is rare in recruitment ("Meridian" was dropped because an existing UK recruiter already trades under it), and lets the parked sectors launch later without a rebrand. Check Companies House, the UKIPO trade mark register and domain availability before buying anything; if Wrenfield is taken, the fallback is **Ashcombe**, used the same way.
 
-| Layer | Placeholder name | Audience | Role of the site |
+> **Launch decision:** only Wrenfield Finance goes live first. Care and Build stay parked until Finance is placing regularly. See [finance-launch-plan.md](finance-launch-plan.md).
+
+| Layer | Name | Audience | Role of the site |
 |---|---|---|---|
-| Group | **Northbridge Talent Group** | Investors, large clients, partners, press | Credibility: who we are, three divisions, leadership, compliance and memberships, "book a call" |
-| Sector 1 | **Northbridge Care** (nursing, medical and care) | Care homes, private hospitals, clinics, home-care providers; nurses, HCAs, registered managers | Client/candidate toggle, jobs, blog, book a call / upload CV |
-| Sector 2 | **Northbridge Engineering** (engineering, construction and technical trades) | Contractors, M&E firms, manufacturers, housebuilders; engineers, site managers, QS, skilled trades | Same template |
-| Sector 3 | **Northbridge Finance** (accounting and finance) | SMEs, PE-backed businesses, practices; qualified and part-qualified accountants, finance leaders | Same template |
+| Group | **Wrenfield Talent Group** | Investors, large clients, partners, press | Credibility: who we are, three divisions, leadership, compliance and memberships, "book a call" |
+| Sector 1 | **Wrenfield Care** (nursing, medical and care) | Care homes, private hospitals, clinics, home-care providers; nurses, HCAs, registered managers | Client/candidate toggle, jobs, blog, book a call / upload CV |
+| Sector 2 | **Wrenfield Build** (engineering, construction and technical trades) | Contractors, M&E firms, manufacturers, housebuilders; engineers, site managers, QS, skilled trades | Same template |
+| Sector 3 | **Wrenfield Finance** (accounting and finance) | SMEs, PE-backed businesses, practices; qualified and part-qualified accountants, finance leaders | Same template |
 
-**Design principle:** one codebase, one design system, three colourways. A shared brand ("a Northbridge company") makes the group look bigger, and each sector site still reads as a specialist.
+**Design principle:** one codebase, one design system, three colourways. A shared brand ("a Wrenfield company") makes the group look bigger, and each sector site still reads as a specialist.
 
 **Team presentation on every site:**
 - Tristan, Head of Recruitment (real photo, real bio, LinkedIn link).
@@ -81,7 +83,7 @@ You are one recruiter. Temp desks need someone on call to fill shifts at short n
 | Morning standup | ✅ Prepares the brief | ✅ Reads, approves, redirects |
 
 **The booking line** (honest version of what you described):
-> "Thanks, Sarah. I've passed your details to Tristan, our Head of Recruitment, who'd like to speak with you personally. You can pick a time that suits you here: [Calendly link]. — Ava, AI Recruitment Assistant, Northbridge Care"
+> "Thanks, Sarah. I've passed your details to Tristan, our Head of Recruitment, who'd like to speak with you personally. You can pick a time that suits you here: [Calendly link]. — Ava, AI Recruitment Assistant, Wrenfield Care"
 
 The Calendly event sits on Tristan's calendar, so every booking lands with him automatically, already enriched with the CRM record.
 
@@ -138,7 +140,7 @@ The Calendly event sits on Tristan's calendar, so every booking lands with him a
 
 ### 5.3 Email outreach engine
 - **Sending platform:** Instantly or Smartlead (both have APIs, inbox rotation, warm-up and reply detection). The CRM pushes contacts and personalised copy in, and webhooks push replies, opens and bounces back. Building a raw sender in-house is not worth it at this scale.
-- **Domains:** never cold-email from the main brand domains. Buy 2–3 secondary domains per brand (e.g. `northbridgecare.co`, `trynorthbridgecare.com`) that redirect to the main site. Each gets 2–3 Google Workspace or Microsoft 365 inboxes with SPF, DKIM and DMARC set up.
+- **Domains:** never cold-email from the main brand domains. Buy 2–3 secondary domains per brand (e.g. `wrenfieldcare.com`, `getwrenfieldcare.com`) that redirect to the main site. Each gets 2–3 Google Workspace or Microsoft 365 inboxes with SPF, DKIM and DMARC set up.
 - **Warm-up and volume:** warm up for 2–3 weeks. Then send about 30–40 emails per inbox per day. 3 brands × 3 domains × 2 inboxes is roughly 500–700 sends per day at full capacity, which is plenty.
 - **Personalisation:** the AI writes a first line and a value proposition from CRM data (company news, a relevant candidate, a market stat), using approved templates per sector and persona. Keep to 3–4 step sequences, plain text, one clear ask.
 - **Hygiene:** verify emails before sending, keep bounces under 2%, include an unsubscribe line in every email, honour opt-outs within 24 hours globally across all brands, and include company details in the signature.
@@ -251,7 +253,7 @@ Tristan replies with decisions in plain English ("pause Finance sequence 2", "ta
 ## 9. Decisions for Tristan
 
 1. **Market:** confirm UK (England-first). Recommended.
-2. **Brand names:** keep the "one group, three divisions" naming, or choose three independent names? Recommended: shared group name.
-3. **Launch order:** all three sectors at once, or lead with one? Recommended: launch all three websites, but run outreach in **one sector first** (Care has the most acute shortage and the best free data via CQC), then add the others after 4–6 weeks.
+2. **Brand names:** ✅ decided 16 Oct 2026: Wrenfield Talent Group, Wrenfield Finance, Wrenfield Care, Wrenfield Build (see §2).
+3. **Launch order:** ✅ decided 16 Oct 2026: **Wrenfield Finance only**, with one website and one email address. Care and Build are parked. Finance wins for a solo recruiter because it is perm-led with high fees, needs no shift cover or weekly payroll, has light compliance, and its candidates and hiring managers live on LinkedIn. The lean plan is in [finance-launch-plan.md](finance-launch-plan.md); it replaces the multi-brand roadmap in §8 for the first 90 days.
 4. **CRM:** custom (Supabase) or off-the-shelf? Recommended: custom.
 5. **AI assistant names and avatars:** pick names and a visual style.

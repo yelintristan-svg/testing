@@ -8,6 +8,7 @@ refuses to run unless CRM_ALLOW_LIVE_SEND=true is set deliberately.
 from __future__ import annotations
 
 import smtplib
+from email import policy
 from email.message import EmailMessage
 from email.utils import formatdate, make_msgid
 from pathlib import Path
@@ -15,7 +16,8 @@ from pathlib import Path
 
 def build(sender_name: str, sender: str, to: str, subject: str, body: str, unsubscribe_url: str,
           reply_to: str | None = None, message_id_domain: str = "example.com") -> EmailMessage:
-    msg = EmailMessage()
+    # Long lines allowed so the List-Unsubscribe URL is never RFC 2047 encoded.
+    msg = EmailMessage(policy=policy.SMTP.clone(max_line_length=998))
     msg["From"] = f"{sender_name} <{sender}>"
     msg["To"] = to
     msg["Subject"] = subject

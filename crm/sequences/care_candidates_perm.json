@@ -1,0 +1,13 @@
+{
+  "id": "care_candidates_perm",
+  "name": "Nurses and care managers: permanent roles",
+  "brand_id": "care",
+  "audience": "candidate",
+  "goal": "Book a 15 minute intro call with Tristan about permanent roles",
+  "steps": [
+    {"kind": "first_touch", "delay_days": 0, "brief": "Lead with their registration (RGN, RMN), specialism and location. Permanent roles in private hospitals and nursing homes, or registered and deputy manager roles. Ask for a 15 minute call."},
+    {"kind": "follow_up", "delay_days": 3, "brief": "Short nudge. One concrete, true benefit such as being matched to homes near them. Same ask. No salary promises."},
+    {"kind": "follow_up", "delay_days": 5, "brief": "Offer an alternative: reply with the kind of setting and hours they want and Tristan will look for it."},
+    {"kind": "breakup", "delay_days": 7, "brief": "Polite last note, no pressure, door left open."}
+  ]
+}
