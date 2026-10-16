@@ -4,13 +4,18 @@
 // ─────────────────────────────────────────────────────────────
 
 module.exports = {
+  // Which sites are live. Pages on a live site only link to other live sites,
+  // so parked brands stay invisible until you add them here.
+  // Lean launch (16 Oct 2026): Finance only. Care, Build and the group site are parked.
+  live: ['finance'],
+
   // One Calendly link per site (can all be the same link to start).
-  // Use your own event, e.g. https://calendly.com/tristan-meridian/intro-call
+  // Use your own event, e.g. https://calendly.com/tristan-wrenfield/intro-call
   calendly: {
     group:   'https://calendly.com/YOUR-HANDLE/intro-call',        // ← SWAP
     care:    'https://calendly.com/YOUR-HANDLE/care-intro',        // ← SWAP
     build:   'https://calendly.com/YOUR-HANDLE/build-intro',       // ← SWAP
-    finance: 'https://calendly.com/YOUR-HANDLE/finance-intro',     // ← SWAP
+    finance: 'https://calendly.com/YOUR-HANDLE/finance-intro',     // ← SWAP (the one link you need at launch)
   },
 
   // Where every form POSTs. Formspree / Basin / Tally work out of the box;
@@ -31,28 +36,28 @@ module.exports = {
   },
 
   company: {
-    legalName: 'Meridian Talent Group Ltd',                         // ← SWAP
+    legalName: 'Wrenfield Talent Ltd',                         // ← SWAP
     regNo: '00000000',                                              // ← SWAP
     address: 'London, United Kingdom',                              // ← SWAP
   },
 
   sites: {
     group: {
-      name: 'Meridian Talent Group',                                // ← SWAP
-      short: 'Meridian',
-      url: 'https://meridiantalent.co.uk',                          // ← SWAP
-      email: 'hello@meridiantalent.co.uk',                          // ← SWAP
+      name: 'Wrenfield Talent Group',                                // ← SWAP
+      short: 'Wrenfield',
+      url: 'https://wrenfieldtalent.co.uk',                          // ← SWAP
+      email: 'hello@wrenfieldtalent.co.uk',                          // ← SWAP
       phone: '+44 20 0000 0000',                                    // ← SWAP
       accent: '#3b5bdb',
       accentDark: '#1e2f7a',
       tagline: 'Specialist recruitment for the people who keep the country running.',
     },
     care: {
-      name: 'Meridian Care',                                        // ← SWAP
+      name: 'Wrenfield Care',                                        // ← SWAP
       short: 'Care',
       sector: 'Nursing, Medical & Care',
-      url: 'https://meridiancare.co.uk',                            // ← SWAP
-      email: 'care@meridiantalent.co.uk',                           // ← SWAP
+      url: 'https://wrenfieldcare.co.uk',                            // ← SWAP
+      email: 'care@wrenfieldtalent.co.uk',                           // ← SWAP
       phone: '+44 20 0000 0001',                                    // ← SWAP
       accent: '#0f9d8a',
       accentDark: '#08564c',
@@ -83,11 +88,11 @@ module.exports = {
       },
     },
     build: {
-      name: 'Meridian Build',                                       // ← SWAP
+      name: 'Wrenfield Build',                                       // ← SWAP
       short: 'Build',
       sector: 'Engineering, Construction & Technical Trades',
-      url: 'https://meridianbuild.co.uk',                           // ← SWAP
-      email: 'build@meridiantalent.co.uk',                          // ← SWAP
+      url: 'https://wrenfieldbuild.co.uk',                           // ← SWAP
+      email: 'build@wrenfieldtalent.co.uk',                          // ← SWAP
       phone: '+44 20 0000 0002',                                    // ← SWAP
       accent: '#e8590c',
       accentDark: '#8a3104',
@@ -118,11 +123,11 @@ module.exports = {
       },
     },
     finance: {
-      name: 'Meridian Finance',                                     // ← SWAP
+      name: 'Wrenfield Finance',                                     // ← SWAP
       short: 'Finance',
       sector: 'Accounting & Finance',
-      url: 'https://meridianfinance.co.uk',                         // ← SWAP
-      email: 'finance@meridiantalent.co.uk',                        // ← SWAP
+      url: 'https://wrenfieldfinance.co.uk',                         // ← SWAP
+      email: 'tristan@wrenfieldfinance.co.uk',                      // ← SWAP (the one launch address)
       phone: '+44 20 0000 0003',                                    // ← SWAP
       accent: '#2f6f4f',
       accentDark: '#173a29',
@@ -131,14 +136,14 @@ module.exports = {
       client: {
         eyebrow: 'For finance leaders & business owners',
         h1: 'Accountants who fit the team and stay.',
-        sub: 'Qualified and part-qualified finance professionals, from AP clerks to Financial Controllers, shortlisted on technical ability and how they will actually work with you.',
+        sub: 'Qualified and part-qualified finance professionals, from part-qualified accountants to Financial Controllers, shortlisted on technical ability and how they will actually work with you.',
         cta: 'Book a hiring call',
         points: [
           ['Shortlists, not CV piles', 'Three to five properly screened candidates, each with a short note on why they fit.'],
           ['Interim cover', 'Month-end, audit, systems projects or parental leave, covered by experienced contractors.'],
           ['Fair, simple fees', 'Clear permanent fee with a rebate period. No retainer needed to get started.'],
         ],
-        roles: ['Financial Controllers', 'Management Accountants', 'Finance Business Partners', 'Payroll Specialists', 'Credit Controllers', 'AP / AR Clerks', 'Interim CFOs & FDs', 'Assistant Accountants'],
+        roles: ['Financial Controllers', 'Management Accountants', 'Finance Business Partners', 'Payroll Specialists', 'Credit Controllers', 'Part-qualified Accountants (ACCA/CIMA)', 'Interim CFOs & FDs', 'Assistant Accountants'],
       },
       candidate: {
         eyebrow: 'For accountants & finance professionals',

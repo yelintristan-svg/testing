@@ -2,13 +2,13 @@
 
 Home for the recruitment agency project: one group brand, three specialist sector brands (care, engineering/construction, finance), one human recruiter (Tristan) and openly disclosed AI recruitment assistants that research, run outreach and book calls.
 
-> **Snapshot notice:** the `blueprint/`, `websites/` and `crm/` folders are a snapshot of the project's shared files taken on 16 Oct 2026. Work on several of them was still in progress at the time, so expect gaps (for example the empty `crm/tests/`, `crm/sequences/` and blog folders) that later commits will fill in.
+> **Start here:** [`blueprint/finance-launch-plan.md`](blueprint/finance-launch-plan.md) is the current plan: Wrenfield Finance only, one website, one email address, and a daily list of about 20 emails and 20 LinkedIn invitations that Tristan sends himself.
 
 ## The plan
 
 The full plan lives in [`blueprint/business-blueprint.md`](blueprint/business-blueprint.md). In short:
 
-1. **Brands.** Northbridge Talent Group (placeholder name) with Care, Engineering and Finance divisions, all built from one codebase and design system.
+1. **Brands.** Wrenfield Talent Group, with three sector brands: Wrenfield Finance, Wrenfield Care and Wrenfield Build, all built from one codebase and design system. **Finance launches first and alone**; Care and Build are parked. See [`blueprint/finance-launch-plan.md`](blueprint/finance-launch-plan.md).
 2. **Operating model.** Tristan handles calls, interviews, offers and relationships. AI assistants, labelled as AI on every site, handle research, CRM enrichment, personalised email sequences, reply handling and booking.
 3. **Systems.** A CRM with a compliant outreach engine (UK GDPR / PECR: suppression lists, unsubscribe links, throttled sending, dry-run by default), static websites with blogs for inbound traffic, and a calendar booking flow.
 4. **Phasing.** Perm first across all sectors, with temp/contract added later where it makes sense.

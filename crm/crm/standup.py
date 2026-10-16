@@ -77,6 +77,17 @@ def build(conn: sqlite3.Connection, settings: Settings, now: datetime | None = N
         facts.append(f"{a['display_name']} sent {sent}, booked {booked}")
     out.append("")
 
+    li = {r["status"]: r["n"] for r in _q(conn, "SELECT status, COUNT(*) n FROM linkedin_targets GROUP BY status")}
+    hand = _q(conn, "SELECT COUNT(*) n FROM messages m JOIN assistants a ON a.id=m.assistant_id WHERE a.is_ai=0"
+                    " AND m.status IN ('draft','approved')")[0]["n"]
+    if li or hand:
+        out.append("## Your daily list")
+        out.append(f"- {hand} emails ready for you to send. Run `python -m crm daily` to see them.")
+        out.append(f"- LinkedIn: {li.get('listed', 0)} invitations to send, {li.get('accepted', 0)} accepted and "
+                   f"waiting for your message, {li.get('queued', 0)} people still queued.")
+        facts.append(f"{hand} emails and {li.get('listed', 0)} LinkedIn invitations on the daily list")
+        out.append("")
+
     blocked = _q(conn, "SELECT block_reason, COUNT(*) n FROM messages WHERE status='blocked' AND created_at>=?"
                        " GROUP BY block_reason", iso(y0))
     suppressed = _q(conn, "SELECT reason, COUNT(*) n FROM suppressions WHERE created_at>=? GROUP BY reason", iso(y0))

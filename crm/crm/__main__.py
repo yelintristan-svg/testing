@@ -1,6 +1,13 @@
 """Command line: python -m crm <command> ...
 
-Typical day, from cron:
+Lean launch (one person, hand-sent email), each weekday morning:
+  python -m crm targets today.txt --brand finance --kind client   # people you noted on LinkedIn / Apollo
+  python -m crm daily --out today.md                              # find emails, check, draft ~20, LinkedIn notes
+  ...send them from your mailbox...
+  python -m crm sent                                              # log what you sent
+  python -m crm li invited <id> <id>                              # log LinkedIn invitations
+
+Typical day with AI assistants sending, from cron:
   */5 8-18 * * 1-5  python -m crm tick         # draft due steps, send within caps
   30 7 * * 1-5      python -m crm standup      # morning brief for Tristan
   0 3 * * 0         python -m crm purge        # retention clean-up
@@ -12,7 +19,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import booking, compliance, db, engine, importers, standup, web
+from . import booking, compliance, daily, db, engine, importers, standup, web
 from .personalise import Writer
 from .settings import load
 
@@ -26,6 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     a = sub.add_parser("add-assistant")
     a.add_argument("id"); a.add_argument("display_name"); a.add_argument("mailbox"); a.add_argument("calendly_url")
     a.add_argument("--brand"); a.add_argument("--started-on")
+    a.add_argument("--human", action="store_true", help="a person sending under their own name (no AI disclosure)")
 
     s = sub.add_parser("load-sequences"); s.add_argument("paths", nargs="+")
 
@@ -46,6 +54,18 @@ def main(argv: list[str] | None = None) -> int:
     e = sub.add_parser("enroll"); e.add_argument("sequence"); e.add_argument("assistant")
     e.add_argument("--brand"); e.add_argument("--kind"); e.add_argument("--status", default="new")
     e.add_argument("--limit", type=int, default=100)
+
+    t = sub.add_parser("targets", help="add people to the LinkedIn/email list (CSV export or 'name | title | company | url' lines)")
+    t.add_argument("path"); t.add_argument("--brand", default="finance")
+    t.add_argument("--kind", default="client", choices=["candidate", "client"]); t.add_argument("--source")
+    sub.add_parser("find-emails", help="look up work emails with the configured provider (Apollo or Hunter)")
+    d = sub.add_parser("daily", help="prepare today's emails and LinkedIn invitations")
+    d.add_argument("--sender", default="tristan"); d.add_argument("--brand", default="finance")
+    d.add_argument("--out", help="also write the list to this Markdown file")
+    hs = sub.add_parser("sent", help="log emails you sent by hand from the daily list")
+    hs.add_argument("ids", nargs="*", help="message ids, or none for all on the list")
+    li = sub.add_parser("li", help="log what you did on LinkedIn")
+    li.add_argument("event", choices=sorted(daily.LI_EVENTS)); li.add_argument("ids", nargs="+")
 
     sub.add_parser("tick", help="draft due steps and send what the caps allow")
     sub.add_parser("review", help="show drafts waiting for approval")
@@ -74,7 +94,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "init":
         db.init(conn, settings.public_base_url); print(f"initialised {settings.db_path}")
     elif args.cmd == "add-assistant":
-        engine.add_assistant(conn, args.id, args.display_name, args.mailbox, args.calendly_url, args.brand, args.started_on)
+        engine.add_assistant(conn, args.id, args.display_name, args.mailbox, args.calendly_url, args.brand,
+                             args.started_on, is_ai=not args.human)
     elif args.cmd == "load-sequences":
         for path in args.paths:
             print("loaded", engine.load_sequence(conn, path))
@@ -106,6 +127,20 @@ def main(argv: list[str] | None = None) -> int:
             _, outcome = engine.enroll(conn, row["id"], args.sequence, args.assistant)
             results[outcome] = results.get(outcome, 0) + 1
         print(results)
+    elif args.cmd == "targets":
+        print(daily.import_targets(conn, args.path, brand_id=args.brand, kind=args.kind, source=args.source))
+    elif args.cmd == "find-emails":
+        print(daily.find_emails(conn, settings))
+    elif args.cmd == "daily":
+        print(json.dumps(daily.build(conn, settings, args.sender, args.brand)))
+        md = daily.render(conn, settings, args.sender)
+        if args.out:
+            Path(args.out).write_text(md)
+        print(md)
+    elif args.cmd == "sent":
+        print(engine.mark_sent(conn, settings, args.ids or None))
+    elif args.cmd == "li":
+        print("updated", daily.log_linkedin(conn, args.ids, args.event))
     elif args.cmd == "tick":
         print(json.dumps(engine.tick(conn, settings), indent=1))
     elif args.cmd == "review":

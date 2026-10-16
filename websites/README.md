@@ -2,12 +2,16 @@
 
 One group site and three sector sites, generated from a single config. Plain static HTML, CSS and JS, so it can be hosted anywhere (Netlify, Cloudflare Pages, Vercel, GitHub Pages, any web host).
 
-| Site | Folder after build | Placeholder domain |
+| Site | Folder after build | Domain (check and buy before launch) |
 |---|---|---|
-| Meridian Talent Group (corporate) | `dist/group/` | meridiantalent.co.uk |
-| Meridian Care (nursing, medical & care) | `dist/care/` | meridiancare.co.uk |
-| Meridian Build (engineering, construction & trades) | `dist/build/` | meridianbuild.co.uk |
-| Meridian Finance (accounting & finance) | `dist/finance/` | meridianfinance.co.uk |
+| Wrenfield Talent Group (corporate) | `dist/group/` | wrenfieldtalent.co.uk |
+| Wrenfield Care (nursing, medical & care) | `dist/care/` | wrenfieldcare.co.uk |
+| Wrenfield Build (engineering, construction & trades) | `dist/build/` | wrenfieldbuild.co.uk |
+| Wrenfield Finance (accounting & finance) | `dist/finance/` | wrenfieldfinance.co.uk |
+
+## Which sites are live
+
+`live` in `config.js` lists the sites that are public. For the lean launch it is `['finance']`: the finance site then drops the "Part of the group" lines and every link to the parked group, Care and Build sites. Everything still builds, so unparking a brand is one edit. Deploy only the live folders (today, `dist/finance/`).
 
 ## Build
 

@@ -2,15 +2,36 @@
 
 One CRM shared by the three agencies (care and nursing, engineering and trades, accounting and finance). It stores candidates and client contacts, writes personalised emails with Claude, runs multi-step sequences at a safe pace, enforces UK GDPR and PECR, hands booked meetings to Tristan, and writes a morning standup for the AI assistants.
 
-It follows the [business blueprint](../blueprint/business-blueprint.md): Northbridge placeholder brand names, assistants Ava and Max, care starting perm-first.
+It follows the [business blueprint](../blueprint/business-blueprint.md). Brands: Wrenfield Finance (launching first), Wrenfield Care and Wrenfield Build (both parked), under Wrenfield Talent Group.
 
 Status: working prototype. Everything runs locally with no API key and **no real email is ever sent**: messages are written as `.eml` files in `outbox/`.
 
-## Quick start
+## Lean launch: your daily list
+
+For the Wrenfield Finance launch, Tristan sends about 20 emails a day himself from one business mailbox, and sends LinkedIn invitations by hand. The CRM finds the emails, checks them, drafts everything and keeps track. The full routine is in [finance-launch-plan.md](../blueprint/finance-launch-plan.md#5-the-daily-routine-about-an-hour).
+
+```bash
+python3 -m crm add-assistant tristan "Tristan" tristan@wrenfieldfinance.co.uk \
+    https://calendly.com/<tristan>/intro --brand finance --human     # a person, not an AI: no AI line, sends by hand
+python3 -m crm load-sequences sequences/finance_*.json
+python3 -m crm targets today.txt --brand finance --kind client      # 'name | title | company | profile url | domain | why' lines, or an Apollo CSV
+python3 -m crm daily --out today.md                                 # email lookup + checks + ~20 drafts + LinkedIn notes
+python3 -m crm sent                                                 # after sending them from your mailbox
+python3 -m crm li invited <id> <id>                                 # after sending LinkedIn invitations (also: accepted, messaged, replied, declined, skip)
+```
+
+| Module | Job |
+|---|---|
+| `crm/daily.py` | The daily list: people in from a pasted list or CSV, email lookup, top-up to `CRM_DAILY_EMAILS`, LinkedIn notes within LinkedIn's limits, the Markdown list with "open in mail app" links. |
+| `crm/lookup.py` | Apollo People Match and Hunter Email Finder. Keeps only addresses the provider has verified, on the company's own domain, never personal ones. |
+
+Senders added with `--human` are never sent through the mailer (`CRM_HAND_SEND=true`); their emails wait on the daily list until `crm sent` logs them. Set `CRM_UNSUB_MODE=reply` until the unsubscribe page is hosted, so the footer asks for a reply instead of linking to localhost.
+
+## Quick start (AI assistants sending)
 
 ```bash
 cd crm
-python3 -m unittest discover -s tests          # 17 end-to-end tests
+python3 -m unittest discover -s tests          # end-to-end tests
 
 export CRM_DB=crm.sqlite3                       # all settings: crm/settings.py
 python3 -m crm init
@@ -71,7 +92,8 @@ Each assistant's booking link points at a Calendly event type owned by **Tristan
 
 ## Not built, on purpose
 
-- **No LinkedIn scraping or LinkedIn automation.** LinkedIn's terms forbid both and ban the accounts involved. LinkedIn URLs are stored only as a reference.
+- **No LinkedIn scraping or LinkedIn automation.** LinkedIn's terms forbid both and ban the accounts involved. The CRM never visits LinkedIn: profile URLs are what Tristan noted himself, kept as a reference and as a matching key for Apollo. Invitations and messages are drafted here and sent by Tristan.
+- **No sending from personal mailboxes.** `add-assistant` refuses gmail.com, outlook.com and similar addresses as senders.
 - **No live sending.** `CRM_MAILER=smtp` exists but refuses to run without `CRM_ALLOW_LIVE_SEND=true`.
 
 ## Before going live (needs Tristan)

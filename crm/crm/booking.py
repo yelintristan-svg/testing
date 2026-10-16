@@ -110,12 +110,17 @@ def _queue_handoff(conn, settings: Settings, contact, assistant, sched) -> None:
     except ValueError:
         when = start
     name = contact["first_name"] or "there"
-    body = (
+    if not assistant["is_ai"]:
+        body = (f"Hi {name},\n\nThanks for booking. You're confirmed for {when}. I'll have read through "
+                f"your details before we speak.\n\nIf anything changes, the link in your calendar invite lets "
+                f"you reschedule.")
+    else:
+        body = (
         f"Hi {name},\n\nThanks for booking. You're confirmed with {settings.recruiter_name}, our "
         f"{settings.recruiter_title}, on {when}. I passed your details to {settings.recruiter_name} because your "
         f"experience looked like a strong fit, and they'll have read through it before you speak.\n\n"
         f"If anything changes, the link in your calendar invite lets you reschedule."
-    )
+        )
     # Transactional, not marketing: approved straight away, no sequence attached.
     conn.execute(
         "INSERT INTO messages (id, contact_id, assistant_id, direction, subject, body, status, created_at)"

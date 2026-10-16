@@ -1,0 +1,12 @@
+{
+  "id": "finance_clients_bd",
+  "name": "Finance leaders: hiring needs",
+  "brand_id": "finance",
+  "audience": "client",
+  "goal": "Book a 15 minute hiring call with Tristan",
+  "steps": [
+    {"kind": "first_touch", "delay_days": 0, "brief": "Finance leader (FD, CFO, Financial Controller, Head of Finance) or business owner. Reference their role and company, and any hiring signal in the notes. Offer to share who is available and current salary levels. Perm-first, interim cover for month-end, audit or system projects."},
+    {"kind": "follow_up", "delay_days": 4, "brief": "Short nudge with one useful line, such as how long qualified accountant hires are taking at the moment. No pressure."},
+    {"kind": "breakup", "delay_days": 7, "brief": "Polite last note. Leave the door open for future hires."}
+  ]
+}

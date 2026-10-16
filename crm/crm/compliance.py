@@ -118,12 +118,16 @@ def can_email(conn: sqlite3.Connection, contact: sqlite3.Row) -> tuple[bool, str
 
 
 def footer(conn: sqlite3.Connection, contact: sqlite3.Row, assistant: sqlite3.Row,
-           base_url: str, secret: str) -> str:
+           base_url: str, secret: str, unsub_mode: str = "link") -> str:
+    """Signature, disclosures and opt-out. unsub_mode='reply' asks for a reply instead of
+    a link, for when the CRM's unsubscribe page isn't hosted yet (PECR needs a simple,
+    free way to opt out; a reply counts)."""
     brand = conn.execute("SELECT * FROM brands WHERE id=?", (contact["brand_id"],)).fetchone()
     lines = [
         "--",
         f"{assistant['display_name']} | {brand['name']}",
-        "I'm an AI assistant. I work alongside our recruitment team, and a person reviews every conversation.",
+        "I'm an AI assistant. I work alongside our recruitment team, and a person reviews every conversation."
+        if assistant["is_ai"] else "",
         brand["postal_address"] or "",
     ]
     if not contact["art14_notice_sent_at"]:
@@ -132,10 +136,13 @@ def footer(conn: sqlite3.Connection, contact: sqlite3.Row, assistant: sqlite3.Ro
             f"We found your professional details via {src}. Our privacy notice explains how we use them "
             f"and your rights: {brand['privacy_url']}"
         )
-    lines.append(
-        "Not interested? One click and we won't email you again from any of our brands: "
-        + unsubscribe_url(base_url, secret, contact["email"])
-    )
+    if unsub_mode == "reply":
+        lines.append("Not interested? Just reply \"unsubscribe\" and we won't email you again.")
+    else:
+        lines.append(
+            "Not interested? One click and we won't email you again from any of our brands: "
+            + unsubscribe_url(base_url, secret, contact["email"])
+        )
     return "\n".join(line for line in lines if line)
 
 

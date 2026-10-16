@@ -45,12 +45,17 @@ def load_sequence(conn: sqlite3.Connection, path: Path | str) -> str:
 
 
 def add_assistant(conn: sqlite3.Connection, aid: str, display_name: str, mailbox: str, calendly_url: str,
-                  brand_id: str | None = None, started_on: str | None = None) -> None:
+                  brand_id: str | None = None, started_on: str | None = None, is_ai: bool = True) -> None:
+    """Add a sender. is_ai=False is a person sending under their own name."""
+    if compliance.classify_email(mailbox) == "personal":
+        raise ValueError(f"{mailbox} is a personal mailbox. Send from a business domain you own "
+                         "(see blueprint/finance-launch-plan.md, 'Email').")
     conn.execute(
-        "INSERT INTO assistants (id, display_name, brand_id, mailbox, mailbox_started_on, calendly_url)"
-        " VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET display_name=excluded.display_name,"
-        " mailbox=excluded.mailbox, calendly_url=excluded.calendly_url, brand_id=excluded.brand_id",
-        (aid, display_name, brand_id, mailbox, started_on or db.now()[:10], calendly_url),
+        "INSERT INTO assistants (id, display_name, is_ai, brand_id, mailbox, mailbox_started_on, calendly_url)"
+        " VALUES (?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET display_name=excluded.display_name,"
+        " is_ai=excluded.is_ai, mailbox=excluded.mailbox, calendly_url=excluded.calendly_url,"
+        " brand_id=excluded.brand_id",
+        (aid, display_name, int(is_ai), brand_id, mailbox, started_on or db.now()[:10], calendly_url),
     )
     conn.commit()
 
@@ -195,6 +200,8 @@ def send_due(conn: sqlite3.Connection, settings: Settings, mailer=None, now: dat
     mailer = mailer or mailer_mod.from_settings(settings)
     counts: dict[str, int] = {}
     for a in conn.execute("SELECT * FROM assistants").fetchall():
+        if not a["is_ai"] and settings.hand_send:
+            continue  # a person's mailbox: they send from the daily list and log it (crm sent)
         room, why = capacity(conn, settings, a, now)
         if room == 0:
             counts[f"held_{why}"] = counts.get(f"held_{why}", 0) + 1
@@ -209,8 +216,7 @@ def send_due(conn: sqlite3.Connection, settings: Settings, mailer=None, now: dat
                 conn.execute("UPDATE messages SET status='blocked', block_reason=? WHERE id=?", (reason, m["id"]))
                 counts[f"blocked_{reason}"] = counts.get(f"blocked_{reason}", 0) + 1
                 continue
-            body = m["body"].replace("{BOOKING_LINK}", booking_link(a, c))
-            body = body + "\n\n" + compliance.footer(conn, c, a, settings.public_base_url, settings.unsubscribe_secret)
+            body = render_body(conn, settings, a, c, m)
             unsub = compliance.unsubscribe_url(settings.public_base_url, settings.unsubscribe_secret, c["email"])
             email = mailer_mod.build(a["display_name"], a["mailbox"], c["email"], m["subject"], body, unsub)
             try:
@@ -219,14 +225,54 @@ def send_due(conn: sqlite3.Connection, settings: Settings, mailer=None, now: dat
                 db.audit(conn, "sender", "send_failed", m["id"], str(exc))
                 counts["failed"] = counts.get("failed", 0) + 1
                 continue
-            ts = _iso(now)
-            conn.execute("UPDATE messages SET status='sent', sent_at=?, body=? WHERE id=?", (ts, body, m["id"]))
-            conn.execute(
-                "UPDATE contacts SET status=CASE WHEN status='new' THEN 'contacted' ELSE status END,"
-                " art14_notice_sent_at=COALESCE(art14_notice_sent_at, ?), last_activity_at=?, updated_at=? WHERE id=?",
-                (ts, ts, ts, c["id"]))
-            _advance(conn, m["enrollment_id"], now)
+            _record_sent(conn, m, c, body, now)
             counts["sent"] = counts.get("sent", 0) + 1
+    conn.commit()
+    return counts
+
+
+def render_body(conn: sqlite3.Connection, settings: Settings, assistant: sqlite3.Row, contact: sqlite3.Row,
+                message: sqlite3.Row) -> str:
+    """The email exactly as it goes out: booking link filled in, footer added."""
+    body = message["body"].replace("{BOOKING_LINK}", booking_link(assistant, contact))
+    return body + "\n\n" + compliance.footer(conn, contact, assistant, settings.public_base_url,
+                                              settings.unsubscribe_secret, settings.unsub_mode)
+
+
+def _record_sent(conn: sqlite3.Connection, m: sqlite3.Row, c: sqlite3.Row, body: str, now: datetime) -> None:
+    ts = _iso(now)
+    conn.execute("UPDATE messages SET status='sent', sent_at=?, body=? WHERE id=?", (ts, body, m["id"]))
+    conn.execute(
+        "UPDATE contacts SET status=CASE WHEN status='new' THEN 'contacted' ELSE status END,"
+        " art14_notice_sent_at=COALESCE(art14_notice_sent_at, ?), last_activity_at=?, updated_at=? WHERE id=?",
+        (ts, ts, ts, c["id"]))
+    if m["enrollment_id"]:
+        _advance(conn, m["enrollment_id"], now)
+
+
+def mark_sent(conn: sqlite3.Connection, settings: Settings, message_ids: list[str] | None = None,
+              sender_id: str | None = None, now: datetime | None = None) -> dict:
+    """Log emails a person sent by hand from the daily list (all of theirs if no ids given)."""
+    now = now or datetime.now(timezone.utc)
+    q = ("SELECT m.* FROM messages m JOIN assistants a ON a.id=m.assistant_id WHERE a.is_ai=0"
+         " AND m.direction='out' AND m.status IN ('draft','approved')")
+    params: list = []
+    if message_ids:
+        q += f" AND m.id IN ({','.join('?' * len(message_ids))})"; params += message_ids
+    if sender_id:
+        q += " AND m.assistant_id=?"; params.append(sender_id)
+    counts: dict[str, int] = {}
+    for m in conn.execute(q, params).fetchall():
+        c = conn.execute("SELECT * FROM contacts WHERE id=?", (m["contact_id"],)).fetchone()
+        ok, reason = compliance.can_email(conn, c) if c else (False, "contact_deleted")
+        if not ok:
+            conn.execute("UPDATE messages SET status='blocked', block_reason=? WHERE id=?", (reason, m["id"]))
+            counts[f"blocked_{reason}"] = counts.get(f"blocked_{reason}", 0) + 1
+            continue
+        a = conn.execute("SELECT * FROM assistants WHERE id=?", (m["assistant_id"],)).fetchone()
+        _record_sent(conn, m, c, render_body(conn, settings, a, c, m), now)
+        db.audit(conn, "tristan", "hand_sent", m["id"])
+        counts["sent"] = counts.get("sent", 0) + 1
     conn.commit()
     return counts
 
