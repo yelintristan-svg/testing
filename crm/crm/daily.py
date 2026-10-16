@@ -2,7 +2,10 @@
 
 The whole flow, run once each morning (`python -m crm daily`):
 
-1. People come in from places Tristan already uses, never from scraping:
+0. Prospecting (`crm/prospect.py`, set up in prospecting.toml) finds new
+   people itself: UK companies from Companies House, finance staff from the
+   register and the company's own website, and a checked work email.
+1. People also come in from places Tristan already uses, never from scraping:
    a CSV export from Apollo (free tier works), or a short list he types or
    pastes while browsing LinkedIn himself (name | title | company | profile URL).
    See `import_targets`.
@@ -27,7 +30,7 @@ from pathlib import Path
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
-from . import compliance, db, engine, importers, lookup
+from . import compliance, db, engine, importers, lookup, prospect
 from .personalise import BANNED, DraftRejected, Writer
 from .settings import Settings
 
@@ -288,14 +291,15 @@ def _hand_queue(conn, sender_id):
 
 
 def build(conn: sqlite3.Connection, settings: Settings, sender_id: str, brand_id: str,
-          writer: Writer | None = None, provider=None, now: datetime | None = None) -> dict:
+          writer: Writer | None = None, provider=None, now: datetime | None = None, prospector=None) -> dict:
     """Prepare today's emails and LinkedIn invitations. Safe to re-run: it tops up, never duplicates."""
     now = now or datetime.now(timezone.utc)
     writer = writer or Writer(settings)
     sender = conn.execute("SELECT * FROM assistants WHERE id=?", (sender_id,)).fetchone()
     if sender is None:
         raise ValueError(f"no sender {sender_id!r}; add one with `crm add-assistant ... --human`")
-    result: dict = {"lookups": find_emails(conn, settings, provider)}
+    result: dict = {"prospecting": (prospector or prospect.run_from_settings)(conn, settings),
+                    "lookups": find_emails(conn, settings, provider)}
 
     # Follow-ups first: they're owed to people already contacted.
     engine.draft_due(conn, settings, writer, now)
@@ -349,6 +353,17 @@ def render(conn: sqlite3.Connection, settings: Settings, sender_id: str, now: da
     sender = conn.execute("SELECT * FROM assistants WHERE id=?", (sender_id,)).fetchone()
     day = now.astimezone(ZoneInfo(settings.timezone))
     out = [f"# Today's list, {day.strftime('%A %d %B %Y')}", ""]
+
+    since = day.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(timezone.utc).isoformat()
+    found = conn.execute("SELECT p.*, c.email AS contact_email, o.name AS org FROM prospect_people p JOIN contacts c"
+                         " ON c.id=p.contact_id LEFT JOIN organisations o ON o.id=c.organisation_id WHERE p.outcome='added' AND p.created_at>=? ORDER BY p.created_at",
+                         (since,)).fetchall()
+    if found:
+        out += [f"## New people found today ({len(found)})", "",
+                "Found automatically from Companies House and company websites. Their first email is below "
+                "once a sequence picks them up.", ""]
+        out += [f"- {p['first_name']} {p['last_name']}, {p['title'] or '-'} at {p['org'] or '-'}: {p['contact_email']} "
+                f"({p['email_status']})" for p in found] + [""]
 
     emails = _hand_queue(conn, sender_id)
     out += [f"## Emails to send ({len(emails)})", "",

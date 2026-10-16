@@ -15,10 +15,49 @@ python3 -m crm add-assistant tristan "Tristan" tristan@wrenfieldfinance.co.uk \
     https://calendly.com/<tristan>/intro --brand finance --human     # a person, not an AI: no AI line, sends by hand
 python3 -m crm load-sequences sequences/finance_*.json
 python3 -m crm targets today.txt --brand finance --kind client      # 'name | title | company | profile url | domain | why' lines, or an Apollo CSV
-python3 -m crm daily --out today.md                                 # email lookup + checks + ~20 drafts + LinkedIn notes
+python3 -m crm daily --out today.md                                 # new people (prospecting.toml) + checks + ~20 drafts + LinkedIn notes
 python3 -m crm sent                                                 # after sending them from your mailbox
 python3 -m crm li invited <id> <id>                                 # after sending LinkedIn invitations (also: accepted, messaged, replied, declined, skip)
 ```
+
+## Automatic prospecting
+
+Each morning `crm daily` (or `crm prospect` on its own) finds new people itself, with no data company in the middle, and adds the ones with a checked work email. What it looks for lives in [`prospecting.toml`](prospecting.toml): area, company size, industries, job titles, which email checks are good enough, and daily limits.
+
+1. **Companies House** (official, free API): active limited companies, PLCs and LLPs whose registered office is in your area, optionally filtered by industry (SIC code), sized by the type of accounts they last filed.
+2. **The register's officers**: directors whose stated occupation matches a target title, such as "Finance Director" or "Chartered Accountant".
+3. **The company's own website**: the CRM tries the likely domains and only accepts one that shows the company's registered number or postcode (UK companies must show these), then reads up to six pages (home, about, team, contact, legal) for names beside matching job titles and for any published work addresses. It honours robots.txt, waits 3 seconds between pages and identifies itself.
+4. **The email**: `published` (on their website), `verified` (their mail server accepted it; nothing is sent), `pattern` (built from the format a named colleague's published address uses) or `guess`. Only the statuses in `accept` are used; guesses are off by default because bounces damage a new domain.
+5. **The usual rules**: the suppression list (an unsubscribe is never undone by prospecting), corporate addresses only (PECR), de-duplication against everyone already in the CRM, and a privacy line in the first email saying the details came from Companies House and the company's website (UK GDPR Article 14).
+
+It never touches LinkedIn. Companies, people and searches already checked are remembered, so each day moves on to new firms, and the daily caps hold across re-runs.
+
+### Setting it up
+
+1. Get a free Companies House API key: register at [developer.company-information.service.gov.uk](https://developer.company-information.service.gov.uk/), create an application, add a REST key, then `export COMPANIES_HOUSE_API_KEY=...`.
+2. Set `location` in `prospecting.toml` (it won't run until you do) and adjust the titles and sizes.
+3. Set `CRM_RECRUITER_EMAIL` to your real business address: the mail server check introduces itself with it.
+4. Try it: `python3 -m crm prospect --dry-run` shows who it would add, saving nothing.
+5. Run it every weekday morning, on whichever machine holds `crm.sqlite3`: `30 7 * * 1-5 cd /path/to/crm && python3 -m crm daily --out today.md`.
+
+### What it costs, and how it compares with paying Apollo
+
+| Route | Cost | Notes |
+|---|---|---|
+| Our own (default) | £0 | Companies House API, company websites and DNS are free. |
+| Mail server check | £0 | Needs outgoing port 25, which most home broadband and many cloud hosts block. It switches itself off when blocked and you still get `published` and `pattern` emails. |
+| Hunter as a fallback (`fallback = "hunter"`) | Free plan: 50 credits a month | Paid plans start around $34 to $49 a month (Hunter's pricing page, October 2026). Only spent on people we found but couldn't confirm. |
+| Apollo instead (`source = "apollo"`) | Free plan has limited API access and credits | Paid plans from about $49 a user a month billed yearly (third-party write-ups, September 2026; check Apollo's own page). People search is free of credits; each email costs one. |
+
+Honest limits of doing it ourselves: the register only names directors, so financial controllers and finance managers are found only when their company lists them on its website, and many small firms don't. Expect plenty of companies to yield nobody (that's why it checks 40 a day), fewer people per day than a paid database, and some `pattern` addresses to bounce. What we gain: no subscription, no shared list that every other agency is also emailing, and a clear, checkable source for every person. Apollo stays available as a switch in the config if volume matters more than cost.
+
+| Module | Job |
+|---|---|
+| `crm/prospect.py` | The daily prospecting run: config, caps, de-duplication, compliance checks, Apollo route. |
+| `crm/companies_house.py` | Companies House search, company size, officers. |
+| `crm/website.py` | Finds and confirms a company's website, reads team and contact pages. |
+| `crm/emailfind.py` | Email formats, MX lookup, polite mail server check. |
+| `crm/net.py` | robots.txt, spacing between requests, user agent. |
 
 | Module | Job |
 |---|---|
@@ -102,5 +141,5 @@ Each assistant's booking link points at a Calendly event type owned by **Tristan
 2. Mailboxes for the assistants (Google Workspace or Microsoft 365), warmed up.
 3. ICO registration, privacy notices per brand, and a review of the legitimate interest assessments stored on each brand.
 4. Calendly: event types under Tristan's account, a webhook subscription pointing at `/webhooks/calendly`, and the signing key in `CALENDLY_WEBHOOK_SIGNING_KEY`.
-5. An Anthropic API key, a data provider account (such as Apollo) for imports, and somewhere to host it (a small VPS or a platform like Railway or Fly.io running `crm serve` and the cron jobs).
+5. An Anthropic API key, a free Companies House API key for prospecting (a paid data provider is optional), and somewhere to host it (a small VPS or a platform like Railway or Fly.io running `crm serve` and the cron jobs).
 6. A private GitHub repository so the code can be worked on from any computer.

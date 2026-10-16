@@ -67,6 +67,9 @@ class Settings:
     email_provider: str = field(default_factory=lambda: _env("CRM_EMAIL_PROVIDER", "none"))
     apollo_api_key: str = field(default_factory=lambda: _env("APOLLO_API_KEY", ""))
     hunter_api_key: str = field(default_factory=lambda: _env("HUNTER_API_KEY", ""))
+    # Automatic prospecting (crm/prospect.py): what to look for lives in this file.
+    prospect_config: Path = field(default_factory=lambda: Path(_env("CRM_PROSPECT_CONFIG", "prospecting.toml")))
+    companies_house_api_key: str = field(default_factory=lambda: _env("COMPANIES_HOUSE_API_KEY", ""))
     # Lookups cost credits; cap them per run.
     daily_lookups: int = field(default_factory=lambda: _env_int("CRM_DAILY_LOOKUPS", 30))
 

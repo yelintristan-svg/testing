@@ -50,6 +50,7 @@ class Base(unittest.TestCase):
         self.s = Settings()
         self.s.db_path, self.s.outbox_dir, self.s.llm = self.tmp / "t.db", self.tmp / "outbox", "offline"
         self.s.unsub_mode = "reply"
+        self.s.prospect_config = self.tmp / "no-prospecting.toml"
         self.conn = db.connect(self.s.db_path)
         db.init(self.conn)
         engine.add_assistant(self.conn, "tristan", "Tristan", "tristan@wrenfieldfinance.example",

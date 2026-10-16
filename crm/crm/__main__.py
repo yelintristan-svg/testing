@@ -2,7 +2,7 @@
 
 Lean launch (one person, hand-sent email), each weekday morning:
   python -m crm targets today.txt --brand finance --kind client   # people you noted on LinkedIn / Apollo
-  python -m crm daily --out today.md                              # find emails, check, draft ~20, LinkedIn notes
+  python -m crm daily --out today.md                              # find new people, check, draft ~20, LinkedIn notes
   ...send them from your mailbox...
   python -m crm sent                                              # log what you sent
   python -m crm li invited <id> <id>                              # log LinkedIn invitations
@@ -19,7 +19,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import booking, compliance, daily, db, engine, importers, standup, web
+from . import booking, compliance, daily, db, engine, importers, prospect, standup, web
 from .personalise import Writer
 from .settings import load
 
@@ -59,6 +59,10 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("path"); t.add_argument("--brand", default="finance")
     t.add_argument("--kind", default="client", choices=["candidate", "client"]); t.add_argument("--source")
     sub.add_parser("find-emails", help="look up work emails with the configured provider (Apollo or Hunter)")
+    pr = sub.add_parser("prospect", help="find new people and work emails now, using prospecting.toml")
+    pr.add_argument("--config", help="another config file (default CRM_PROSPECT_CONFIG or prospecting.toml)")
+    pr.add_argument("--dry-run", action="store_true",
+                    help="show who would be added without saving (Apollo still spends credits)")
     d = sub.add_parser("daily", help="prepare today's emails and LinkedIn invitations")
     d.add_argument("--sender", default="tristan"); d.add_argument("--brand", default="finance")
     d.add_argument("--out", help="also write the list to this Markdown file")
@@ -131,8 +135,17 @@ def main(argv: list[str] | None = None) -> int:
         print(daily.import_targets(conn, args.path, brand_id=args.brand, kind=args.kind, source=args.source))
     elif args.cmd == "find-emails":
         print(daily.find_emails(conn, settings))
+    elif args.cmd == "prospect":
+        try:
+            cfg = prospect.load_config(args.config or settings.prospect_config)
+            result = prospect.run(conn, settings, cfg, dry_run=args.dry_run)
+        except (OSError, RuntimeError, ValueError) as exc:
+            result = {"error": str(exc)}
+        print("\n".join(prospect.summary(result)))
     elif args.cmd == "daily":
-        print(json.dumps(daily.build(conn, settings, args.sender, args.brand)))
+        result = daily.build(conn, settings, args.sender, args.brand)
+        print("\n".join(prospect.summary(result.pop("prospecting"))))
+        print(json.dumps(result))
         md = daily.render(conn, settings, args.sender)
         if args.out:
             Path(args.out).write_text(md)
